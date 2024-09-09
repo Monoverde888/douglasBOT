@@ -1,14 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from flask import Flask, jsonify, request, url_for
-entreno = True
-
-# flask
-app = Flask(__name__)
-@app.route('/', methods=['GET'])
-def root():
-    return jsonify({'msg' : 'Try POSTing to the /query endpoint with a query to the 42BOT'})
+import streamlit as st
 
 # Configuration
 embed_size = 384
@@ -144,44 +137,26 @@ class BigramLM(nn.Module):
             idx_next = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
-    
+
 modeloalgo2 = BigramLM()
 modelo2 = modeloalgo2.to(device)
-print(entreno)
-#if entreno == False:
-    #modelo2.load_state_dict(torch.load("/content/drive/MyDrive/IA/autostop.txt"))
-#else:
 modelo2.load_state_dict(torch.load("entrenado.pt", map_location=torch.device("cpu")))
 
 total_params = sum(p.numel() for p in modelo2.parameters())
 print(f"params: {total_params}")
-@app.route('/query', methods=['POST'])
-def query():
-    if request.method == 'POST':
-        data = request.get_json()
-        context = data['context']
-        print(context)
-        contextc = torch.tensor([encode(context)])
+
+# Streamlit app
+st.title('Chatbot')
+st.write("Type your query below:")
+
+input_text = st.text_input("Input:")
+
+if st.button('Generate Response'):
+    if input_text:
+        contextc = torch.tensor([encode(input_text)])
         context = contextc.to(device)
-        return jsonify({'response' : decode(modelo2.generate(context,max_tokens = 50)[0].tolist())})
-'''
-#  data = request.get_json()
-#  print(data)
-context = request.data
-    contextc = torch.tensor([encode(context)])
-    context = contextc.to(device)
-    return jsonify({'response' : decode(modelo2.generate(context,max_tokens = 500)[0].tolist())})
-
-
-while True:
-  contextc = input("que le dices?? (escribir SALIR para salir) ") # for hack club people, type SALIR to exit
-  print("\n")
-  contextc = torch.tensor([encode(contextc)])
-  context = contextc.to(device)
-  if(decode(context[0].tolist()) == "SALIR"):
-    break
-  print(decode(modelo2.generate(context,max_tokens = 500)[0].tolist()))
-  print("\n")
-'''
-if __name__ == '__main__':
-    app.run()
+        generated = modelo2.generate(context, max_tokens=50)[0].tolist()
+        response = decode(generated)
+        st.write("Response:", response)
+    else:
+        st.write("Please enter some text to get a response.")
