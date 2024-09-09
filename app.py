@@ -163,7 +163,7 @@ def query():
         print(context)
         contextc = torch.tensor([encode(context)])
         context = contextc.to(device)
-        return jsonify({'response' : decode(modelo2.generate(context,max_tokens = 250)[0].tolist())})
+        return jsonify({'response' : decode(modelo2.generate(context,max_tokens = 50)[0].tolist())})
 '''
 #  data = request.get_json()
 #  print(data)
