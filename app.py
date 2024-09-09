@@ -151,7 +151,7 @@ print(entreno)
 #if entreno == False:
     #modelo2.load_state_dict(torch.load("/content/drive/MyDrive/IA/autostop.txt"))
 #else:
-modelo2.load_state_dict(torch.load("entrenado.pt"))
+modelo2.load_state_dict(torch.load("entrenado.pt", map_location=torch.device("cpu")))
 
 total_params = sum(p.numel() for p in modelo2.parameters())
 print(f"params: {total_params}")
