@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import streamlit as st
-import requests
-import os
+from flask import Flask, jsonify, request
 
+# Configuration
 embed_size = 384
 block_size = 256
 dropout = 0.2
@@ -12,19 +11,10 @@ n_layer = 6
 n_head = 6
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-file_url = "https://filebin.net/kws1ohude8xyphjp/autostop.txt"
-file_path = "autostop.txt"
-
-if not os.path.isfile(file_path):
-    response = requests.get(file_url)
-    if response.status_code == 200:
-        with open(file_path, "w") as file:
-            file.write(response.text)
-
-with open(file_path, "r") as file:
+# Load and preprocess text data
+with open("autostop.txt", "r") as file:
     text = file.read()
 preprocessed = list(text)
-
 vocab = sorted(set(preprocessed))
 vocab_size = len(vocab)
 
@@ -45,9 +35,8 @@ def get_batch(split):
     y = torch.stack([data[i + 1:i + block_size + 1] for i in ix])
     return x.to(device), y.to(device)
 
-xb, yb = get_batch('train')
-
-class TransBlock(nn.Module):
+# Model components
+class trans_block(nn.Module):
     def __init__(self, embed_size, heads):
         super().__init__()
         self.attention = Heads(heads, embed_size // heads)
@@ -111,12 +100,12 @@ class BigramLM(nn.Module):
         self.position_embedding_table = nn.Embedding(block_size, embed_size)
         self.lm_head = nn.Linear(embed_size, vocab_size)
         self.blocks = nn.Sequential(
-            *[TransBlock(embed_size, heads=n_head) for _ in range(n_layer)]
+            *[trans_block(embed_size, heads=n_head) for _ in range(n_layer)]
         )
         self.ln_f = nn.LayerNorm(embed_size)
 
     def forward(self, idx, targets=None):
-        Batch, Time = idx.shape
+        Branch, Time = idx.shape
         token_embed = self.embedding_table(idx)
         position_embed = self.position_embedding_table(torch.arange(Time, device=device))
         x = token_embed + position_embed
@@ -143,30 +132,23 @@ class BigramLM(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
 
+app = Flask(__name__)
 modeloalgo2 = BigramLM()
 modelo2 = modeloalgo2.to(device)
+modelo2.load_state_dict(torch.load("entrenado.pt"))
 
-try:
-    modelo2.load_state_dict(torch.load("entrenado.pt", map_location=torch.device("cpu")))
-except FileNotFoundError:
-    st.error("Model file not found. Initializing with random weights.")
-except RuntimeError as e:
-    st.error(f"Error loading model state dict: {e}")
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({'msg': 'Try POSTing to the /query endpoint with a query to the 42BOT'})
 
-total_params = sum(p.numel() for p in modelo2.parameters())
-st.write(f"Model parameters: {total_params}")
+@app.route('/query', methods=['POST'])
+def query():
+    data = request.get_json()
+    context = data['context']
+    contextc = torch.tensor([encode(context)])
+    context = contextc.to(device)
+    response = decode(modelo2.generate(context, max_tokens=500)[0].tolist())
+    return jsonify({'response': response})
 
-st.title('Chatbot')
-st.write("Type your query below:")
-
-input_text = st.text_input("Input:")
-
-if st.button('Generate Response'):
-    if input_text:
-        contextc = torch.tensor([encode(input_text)])
-        context = contextc.to(device)
-        generated = modelo2.generate(context, max_tokens=50)[0].tolist()
-        response = decode(generated)
-        st.write("Response:", response)
-    else:
-        st.write("Please enter some text to get a response.")
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
