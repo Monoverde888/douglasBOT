@@ -12,16 +12,27 @@ n_layer = 6
 n_head = 6
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-file_url = "https://filebin.net/kws1ohude8xyphjp/autostop.txt"
-file_path = "autostop.txt"
+file_url_txt = "https://filebin.net/kws1ohude8xyphjp/autostop.txt"
+file_path_txt = "autostop.txt"
 
-if not os.path.isfile(file_path):
-    response = requests.get(file_url)
+file_url_pt = "https://filebin.net/kws1ohude8xyphjp/entrenado.pt"
+file_path_pt = "entrenado.pt"
+
+def download_file(url, path):
+    response = requests.get(url)
     if response.status_code == 200:
-        with open(file_path, "w") as file:
-            file.write(response.text)
+        with open(path, "wb") as file:
+            file.write(response.content)
+    else:
+        st.error(f"Failed to download {path}")
 
-with open(file_path, "r") as file:
+if not os.path.isfile(file_path_txt):
+    download_file(file_url_txt, file_path_txt)
+
+if not os.path.isfile(file_path_pt):
+    download_file(file_url_pt, file_path_pt)
+
+with open(file_path_txt, "r") as file:
     text = file.read()
 preprocessed = list(text)
 
@@ -147,9 +158,9 @@ modeloalgo2 = BigramLM()
 modelo2 = modeloalgo2.to(device)
 
 try:
-    modelo2.load_state_dict(torch.load("entrenado.pt", map_location=torch.device("cpu")))
-except FileNotFoundError:
-    st.error("Model file not found. Initializing with random weights.")
+    modelo2.load_state_dict(torch.load(file_path_pt, map_location=torch.device("cpu")))
+except Exception as e:
+    st.error(f"Failed to load model: {str(e)}")
 
 total_params = sum(p.numel() for p in modelo2.parameters())
 st.write(f"Model parameters: {total_params}")
