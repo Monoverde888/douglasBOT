@@ -12,16 +12,25 @@ n_layer = 6
 n_head = 6
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-file_url = "https://filebin.net/kws1ohude8xyphjp/autostop.txt"
-file_path = "autostop.txt"
+file_url_txt = "https://filebin.net/kws1ohude8xyphjp/autostop.txt"
+file_path_txt = "autostop.txt"
 
-if not os.path.isfile(file_path):
-    response = requests.get(file_url)
+file_url_pt = "https://filebin.net/kws1ohude8xyphjp/entrenado.pt"
+file_path_pt = "entrenado.pt"
+
+if not os.path.isfile(file_path_txt):
+    response = requests.get(file_url_txt)
     if response.status_code == 200:
-        with open(file_path, "w") as file:
+        with open(file_path_txt, "w") as file:
             file.write(response.text)
 
-with open(file_path, "r") as file:
+if not os.path.isfile(file_path_pt):
+    response = requests.get(file_url_pt)
+    if response.status_code == 200:
+        with open(file_path_pt, "wb") as file:
+            file.write(response.content)
+
+with open(file_path_txt, "r") as file:
     text = file.read()
 preprocessed = list(text)
 
@@ -147,15 +156,15 @@ modeloalgo2 = BigramLM()
 modelo2 = modeloalgo2.to(device)
 
 try:
-    modelo2.load_state_dict(torch.load("entrenado.pt", map_location=torch.device("cpu")))
+    modelo2.load_state_dict(torch.load(file_path_pt, map_location=torch.device("cpu")))
 except FileNotFoundError:
     st.error("Model file not found. Initializing with random weights.")
 
 total_params = sum(p.numel() for p in modelo2.parameters())
 st.write(f"Model parameters: {total_params}")
 
-st.title('Chatbot')
-st.write("Type your query below:")
+st.title('DouglasBOT')
+st.write("Trained on The Hitchikers Guide to the Galaxy spanish version")
 
 input_text = st.text_input("Input:")
 
