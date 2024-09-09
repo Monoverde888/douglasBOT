@@ -47,7 +47,7 @@ def get_batch(split):
 
 xb, yb = get_batch('train')
 
-class trans_block(nn.Module):
+class TransBlock(nn.Module):
     def __init__(self, embed_size, heads):
         super().__init__()
         self.attention = Heads(heads, embed_size // heads)
@@ -111,12 +111,12 @@ class BigramLM(nn.Module):
         self.position_embedding_table = nn.Embedding(block_size, embed_size)
         self.lm_head = nn.Linear(embed_size, vocab_size)
         self.blocks = nn.Sequential(
-            *[trans_block(embed_size, heads=n_head) for _ in range(n_layer)]
+            *[TransBlock(embed_size, heads=n_head) for _ in range(n_layer)]
         )
         self.ln_f = nn.LayerNorm(embed_size)
 
     def forward(self, idx, targets=None):
-        Branch, Time = idx.shape
+        Batch, Time = idx.shape
         token_embed = self.embedding_table(idx)
         position_embed = self.position_embedding_table(torch.arange(Time, device=device))
         x = token_embed + position_embed
@@ -150,6 +150,8 @@ try:
     modelo2.load_state_dict(torch.load("entrenado.pt", map_location=torch.device("cpu")))
 except FileNotFoundError:
     st.error("Model file not found. Initializing with random weights.")
+except RuntimeError as e:
+    st.error(f"Error loading model state dict: {e}")
 
 total_params = sum(p.numel() for p in modelo2.parameters())
 st.write(f"Model parameters: {total_params}")
