@@ -135,7 +135,7 @@ class BigramLM(nn.Module):
 app = Flask(__name__)
 modeloalgo2 = BigramLM()
 modelo2 = modeloalgo2.to(device)
-modelo2.load_state_dict(torch.load("entrenado.pt"))
+modelo2.load_state_dict(torch.load("entrenado.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu")))
 
 @app.route('/', methods=['GET'])
 def root():
