@@ -153,6 +153,8 @@ print(entreno)
 #else:
 modelo2.load_state_dict(torch.load("entrenado.pt"))
 
+total_params = sum(p.numel() for p in modelo2.parameters())
+print(f"params: {total_params}")
 @app.route('/query', methods=['POST'])
 def query():
     if request.method == 'POST':
