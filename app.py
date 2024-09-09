@@ -18,17 +18,19 @@ file_path_txt = "autostop.txt"
 file_url_pt = "https://filebin.net/kws1ohude8xyphjp/entrenado.pt"
 file_path_pt = "entrenado.pt"
 
-if not os.path.isfile(file_path_txt):
-    response = requests.get(file_url_txt)
+def download_file(url, path):
+    response = requests.get(url)
     if response.status_code == 200:
-        with open(file_path_txt, "w") as file:
-            file.write(response.text)
+        with open(path, "wb") as file:
+            file.write(response.content)
+    else:
+        st.error(f"Failed to download {path}")
+
+if not os.path.isfile(file_path_txt):
+    download_file(file_url_txt, file_path_txt)
 
 if not os.path.isfile(file_path_pt):
-    response = requests.get(file_url_pt)
-    if response.status_code == 200:
-        with open(file_path_pt, "wb") as file:
-            file.write(response.content)
+    download_file(file_url_pt, file_path_pt)
 
 with open(file_path_txt, "r") as file:
     text = file.read()
@@ -157,14 +159,14 @@ modelo2 = modeloalgo2.to(device)
 
 try:
     modelo2.load_state_dict(torch.load(file_path_pt, map_location=torch.device("cpu")))
-except FileNotFoundError:
-    st.error("Model file not found. Initializing with random weights.")
+except Exception as e:
+    st.error(f"Failed to load model: {str(e)}")
 
 total_params = sum(p.numel() for p in modelo2.parameters())
 st.write(f"Model parameters: {total_params}")
 
-st.title('DouglasBOT')
-st.write("Trained on The Hitchikers Guide to the Galaxy spanish version")
+st.title('Chatbot')
+st.write("Type your query below:")
 
 input_text = st.text_input("Input:")
 
